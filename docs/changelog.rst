@@ -78,6 +78,10 @@ Bug fixes
   back to the synced lyrics instead of discarding them.
 - :ref:`modify-cmd`: Fix applying changes when choosing objects in interactive
   select mode. :bug:`4880`
+- :doc:`plugins/aura`: Prevent multi-valued field filters from crashing with an
+  ``sqlite3.InterfaceError``.
+- :doc:`plugins/aura`: When sorting by ``field``, do not exclude resources that
+  have no value for ``field``.
 
 ..
     For plugin developers
