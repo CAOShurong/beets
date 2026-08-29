@@ -139,3 +139,41 @@ class ImportAddedTest(PluginMixin, AutotagImportTestCase):
             assert items_added_before[item_path] == pytest.approx(
                 added_after, rel=1e-4
             ), f"reimport modified Item.added for {item_path}"
+
+    def test_preserve_write_mtime_uses_write_path(self):
+        self.importer.run()
+        item = self.lib.items().get()
+        assert item.added is not None
+
+        # Use a distinct source mtime so that changing the source path is
+        # observable when metadata is written to a converted copy.
+        source_mtime = item.added + 1234
+        os.utime(item.filepath, (source_mtime, source_mtime))
+        item_mtime_before = item.mtime
+
+        converted_path = self.temp_path / "converted.mp3"
+        converted_path.write_bytes(item.filepath.read_bytes())
+
+        self.config["importadded"]["preserve_write_mtimes"] = True
+        item.write(path=os.fsencode(converted_path))
+
+        assert item.filepath.stat().st_mtime == pytest.approx(
+            source_mtime, abs=0.1
+        )
+        assert converted_path.stat().st_mtime == pytest.approx(
+            item.added, abs=0.1
+        )
+        assert item.mtime == item_mtime_before
+
+    def test_preserve_write_mtime_updates_item_mtime_for_item_path(self):
+        self.importer.run()
+        item = self.lib.items().get()
+        assert item.added is not None
+
+        self.config["importadded"]["preserve_write_mtimes"] = True
+        item.write()
+
+        assert item.filepath.stat().st_mtime == pytest.approx(
+            item.added, abs=0.1
+        )
+        assert item.mtime == item.added

@@ -163,13 +163,19 @@ class ImportAddedPlugin(BeetsPlugin):
             item.store()
 
     def update_after_write_time(self, item: Item, path: bytes) -> None:
-        """Update the mtime of the item's file with the item.added value
-        after each write of the item if `preserve_write_mtimes` is enabled.
+        """Update the written file's mtime with the item.added value.
+
+        Keep the item's cached mtime in sync only when its own file was
+        written. A write may target another path, such as a converted copy.
         """
         if item.added:
             if self.config["preserve_write_mtimes"].get(bool):
-                self.write_item_mtime(item, item.added)
+                if path == item.path:
+                    self.write_item_mtime(item, item.added)
+                else:
+                    self.write_file_mtime(path, item.added)
             self._log.debug(
-                "Write of item '{0.filepath}', selected item.added={0.added}",
-                item,
+                "Write to '{}', selected item.added={}",
+                util.displayable_path(path),
+                item.added,
             )
